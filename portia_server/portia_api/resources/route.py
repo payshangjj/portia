@@ -1,4 +1,6 @@
-from collections import Sequence, OrderedDict
+import logging
+
+from collections import Sequence
 from operator import attrgetter
 
 from django.db import transaction
@@ -11,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.status import (HTTP_200_OK, HTTP_201_CREATED,
                                    HTTP_204_NO_CONTENT)
 from rest_framework.viewsets import ViewSet
-from six import iterkeys, text_type
+from six import iterkeys
 from six.moves import map
 
 from portia_orm.collection import ModelCollection
@@ -26,7 +28,10 @@ from ..jsonapi.parsers import JSONApiParser, JSONParser
 from ..jsonapi.registry import get_schema
 from ..jsonapi.renderers import JSONApiRenderer, JSONRenderer
 from ..jsonapi.serializers import JsonApiPolymorphicSerializer
-from ..jsonapi.utils import get_status_title, type_from_model_name
+from ..jsonapi.utils import type_from_model_name
+
+
+logger = logging.getLogger(__name__)
 
 
 class JsonApiRoute(ViewSet):
@@ -201,6 +206,8 @@ class CreateModelMixin(object):
             raise JsonApiValidationError(err.messages)
 
         data = serializer.data
+        logger.error(self.user)
+        logger.error('Updating: {}'.format(type(serializer)))
         self.storage.commit()
         headers = self.get_success_headers(data)
         return Response(data, status=HTTP_201_CREATED, headers=headers)
@@ -241,10 +248,10 @@ class RetrieveModelMixin(object):
 
 class UpdateModelMixin(object):
     def update(self, *args, **kwargs):
-        try:
-            instance = self.get_instance()
-        except (TypeError, IndexError, KeyError):
-            raise Http404
+        # try:
+        instance = self.get_instance()
+        # except (TypeError, IndexError, KeyError):
+        #     raise Http404
 
         if kwargs.pop('partial', False):
             partial = set(instance.__class__._ordered_fields).difference({'id'})
@@ -260,6 +267,8 @@ class UpdateModelMixin(object):
             raise JsonApiValidationError(err.messages)
 
         data = serializer.data
+        logger.error(self.user)
+        logger.error('Updating: {}, {}'.format(instance.id, type(instance)))
         self.storage.commit()
         return Response(data, status=HTTP_200_OK)
 
@@ -273,10 +282,10 @@ class UpdateModelMixin(object):
 
 class DestroyModelMixin(object):
     def destroy(self, *args, **kwargs):
-        try:
-            instance = self.get_instance()
-        except (TypeError, IndexError, KeyError):
-            raise Http404
+        # try:
+        instance = self.get_instance()
+        # except (TypeError, IndexError, KeyError):
+        #     raise Http404
 
         serializer = self.get_serializer(instance, data=self.data)
 
@@ -288,6 +297,8 @@ class DestroyModelMixin(object):
             raise JsonApiConflictError(u"You cannot delete this resource.")
 
         data = serializer.data
+        logger.error(self.user)
+        logger.error('Updating: {}, {}'.format(instance.id, type(instance)))
         self.storage.commit()
         if data:
             return Response(data, status=HTTP_200_OK)

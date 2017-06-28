@@ -72,7 +72,7 @@ class MysqlObjectStore(BaseObjectStore):
             Objs.objects.update_or_create(
                 repo=self._repo, oid=oid, type=tnum, size=len(data), data=data)
         except IntegrityError:
-            pass
+            import traceback;traceback.print_exc()
 
     def delete_objects(self, object_ids):
         Objs.objects.filter(repo=self._repo, oid__in=object_ids).delete()
@@ -100,6 +100,7 @@ class MysqlRefsContainer(RefsContainer):
         try:
             ref = qs.get(repo=self._repo, ref=name)
         except Refs.DoesNotExist:
+            import traceback;traceback.print_exc()
             return None
         else:
             return ref.value

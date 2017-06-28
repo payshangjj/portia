@@ -237,6 +237,8 @@ class GitStorage(BasePortiaStorage):
         self._tree = tree
         self._working_tree = tree.copy()
         self._blobs = {}
+        data = '\n'.join('{}@{}'.format(path, sha[:7]) for path, _, sha in self._tree.items())
+        logger.error(u'Checking out: {!r}, {!r}\n{}'.format(self._commit, self._tree, data))
         # TODO: Fail if there are changes in working tree
 
     @classmethod
@@ -246,7 +248,7 @@ class GitStorage(BasePortiaStorage):
 
     def _open(self, name, mode='rb'):
         name = self.path(name)
-        logger.debug('Dulwich open: {}'.format(name))
+        logger.error('Dulwich open: {}'.format(name))
         if self.isfile(name):
             _, sha = self._working_tree[name]
             if sha in self._blobs:
@@ -375,13 +377,17 @@ class GitStorage(BasePortiaStorage):
         for change in tree_changes(fake_store, self._tree.id, working_tree.id):
             if change.new.sha in self._blobs:
                 blobs.append(self._blobs[change.new.sha])
-
+        logger.error('Changes: {}'.format(list(tree_changes(fake_store, self._tree.id, working_tree.id))))
         commit = self.repo._create_commit()
         commit.parents = [self._commit.id]
         commit.tree = working_tree.id
         commit.message = message
+        logger.error('Committing: {!r}, {!r}'.format(commit, working_tree))
+        logger.error('Updating Store')
         self.repo._update_store(commit, working_tree, *blobs)
+        logger.error('Advancing branch')
         self.repo._advance_branch(self.branch, commit)
+        logger.error('Updating values in memory')
 
         self._commit = commit
         self._tree = working_tree
